@@ -1,14 +1,45 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { StyleSheet, KeyboardAvoidingView, Platform, ImageBackground, View, Image, Text, TextInput } from 'react-native'
 import { RectButton } from 'react-native-gesture-handler'
+import SelectInput, { Item } from 'react-native-picker-select'
 import { Feather } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
+import axios from 'axios'
+
+interface IBGEUFResponse {
+  sigla: string;
+}
+
+interface IBGECityResponse {
+  nome: string;
+}
 
 const Home = () => {
   const navigation = useNavigation()
 
-  const [uf, setUf] = useState('')
-  const [city, setCity] = useState('')
+  const [ufs, setUfs] = useState<Item[]>([])
+  const [cities, setCities] = useState<Item[]>([])
+
+  const [selectedUf, setSelectedUf] = useState(null)
+  const [selectedCity, setSelectedCity] = useState(null)
+
+  const IBGE_API_URL = 'https://servicodados.ibge.gov.br/api/v1'
+
+  useEffect(() => {
+    axios.get(`${IBGE_API_URL}/localidades/estados`).then(resp => {
+      setUfs(resp.data.map((uf: IBGEUFResponse) => ({ label: uf.sigla, value: uf.sigla })))
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!selectedUf) {
+      return
+    }
+
+    axios.get(`${IBGE_API_URL}/localidades/estados/${selectedUf}/municipios`).then(resp => {
+      setCities(resp.data.map((city: IBGECityResponse) => ({ label: city.nome, value: city.nome })))
+    })
+  }, [selectedUf])
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -27,27 +58,22 @@ const Home = () => {
         </View>
 
         <View style={styles.footer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Digite a UF"
-            maxLength={2}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            value={uf}
-            onChangeText={setUf}
+          <SelectInput
+            placeholder={{ label: "Selecione a UF", value: null }}
+            onValueChange={value => setSelectedUf(value)}
+            items={ufs}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Digite a cidade"
-            autoCorrect={false}
-            value={city}
-            onChangeText={setCity}
+          <SelectInput
+            placeholder={{ label: "Selecione a cidade", value: null }}
+            disabled={!selectedUf}
+            onValueChange={value => setSelectedCity(value)}
+            items={cities}
           />
 
           <RectButton
             style={styles.button}
-            onPress={() => navigation.navigate('Points', { uf, city })}
+            onPress={() => navigation.navigate('Points', { uf: selectedUf, city: selectedCity })}
           >
             <View style={styles.buttonIcon}>
               <Text>
