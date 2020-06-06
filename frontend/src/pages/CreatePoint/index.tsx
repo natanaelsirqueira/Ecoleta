@@ -9,6 +9,7 @@ import logo from '../../assets/logo.svg'
 import api from '../../services/api'
 
 import './styles.css'
+import Dropzone from '../../components/Dropzone'
 
 interface Item {
   id: number;
@@ -29,9 +30,9 @@ const CreatePoint = () => {
 
   const [ufs, setUfs] = useState<string[]>([])
   const [cities, setCities] = useState<string[]>([])
-
   const [initialPosition, setInitialPosition] = useState<[number, number]>([0, 0])
 
+  const [selectedFile, setSelectedFile] = useState<File>()
   const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0, 0])
   const [selectedUf, setSelectedUf] = useState('0')
   const [selectedCity, setSelectedCity] = useState('0')
@@ -105,20 +106,24 @@ const CreatePoint = () => {
     const { name, email, whatsapp } = formData
     const [latitude, longitude] = selectedPosition
 
-    const data = {
-      name,
-      email,
-      whatsapp,
-      latitude,
-      longitude,
-      uf: selectedUf,
-      city: selectedCity,
-      items: selectedItems
+    const data = new FormData()
+
+    data.append('name', name)
+    data.append('email', email)
+    data.append('whatsapp', whatsapp)
+    data.append('latitude', String(latitude))
+    data.append('longitude', String(longitude))
+    data.append('uf', selectedUf)
+    data.append('city', selectedCity)
+    data.append('items', selectedItems.join(','))
+
+    if (selectedFile) {
+      data.append('image', selectedFile)
     }
 
     await api.post('points', data)
 
-    alert('Ponto de coleta criado!')
+    alert('Ponto de coleta cadastrado!')
 
     history.push('/')
   }
@@ -136,6 +141,8 @@ const CreatePoint = () => {
 
       <form onSubmit={handleSubmit}>
         <h1>Cadastro do <br /> ponto de coleta</h1>
+
+        <Dropzone onFileUpload={setSelectedFile} />
 
         <fieldset>
           <legend>
